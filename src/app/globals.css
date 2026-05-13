@@ -1,26 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════════════
+   AZAZEL OSINT — Industrial Design System
+   Minimalist Brutalist Theme (B&W)
+   ═══════════════════════════════════════════════════════════ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-card: #09090b;
+  --color-card-foreground: #ffffff;
+  --color-popover: #09090b;
+  --color-popover-foreground: #ffffff;
+  --color-primary: #ffffff;
+  --color-primary-foreground: #000000;
+  --color-secondary: #18181b;
+  --color-secondary-foreground: #ffffff;
+  --color-muted: #18181b;
+  --color-muted-foreground: #a1a1aa;
+  --color-accent: #ffffff;
+  --color-accent-foreground: #000000;
+  --color-destructive: #ffffff;
+  --color-destructive-foreground: #000000;
+  --color-border: #27272a;
+  --color-input: #18181b;
+  --color-ring: #ffffff;
+  
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  
+  --color-sidebar-background: #000000;
+  --color-sidebar-foreground: #a1a1aa;
+  --color-sidebar-primary: #ffffff;
+  --color-sidebar-primary-foreground: #000000;
+  --color-sidebar-accent: #18181b;
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: #27272a;
+  --color-sidebar-ring: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base Styles ──────────────────────────────────────── */
+* {
+  border-color: var(--color-border);
+  border-radius: 0 !important; /* Force sharp corners */
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ── Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
+}
+
+/* ── Selection ────────────────────────────────────────── */
+::-selection {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* ── Custom Utilities ─────────────────────────────────── */
+
+.brutalist-border {
+  border: 1px solid var(--color-border);
+}
+
+.brutalist-card {
+  background: #09090b;
+  border: 1px solid var(--color-border);
+  transition: border-color 0.2s ease;
+}
+
+.brutalist-card:hover {
+  border-color: #ffffff;
+}
+
+.mono-tag {
+  background: #18181b;
+  color: #ffffff;
+  border: 1px solid #27272a;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── Buttons Overrides ────────────────────────────────── */
+.btn-brutalist {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-brutalist:hover {
+  background: #e4e4e7;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0px #27272a;
+}
+
+/* ── Hide premium glows ───────────────────────────────── */
+.glow-purple, .glow-blue, .glow-neon {
+  box-shadow: none !important;
+}
+
+.glass, .glass-strong {
+  background: #000000 !important;
+  backdrop-filter: none !important;
+  border: 1px solid #27272a !important;
+}
+
+.gradient-text, .gradient-text-purple {
+  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.noise-overlay::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
 }

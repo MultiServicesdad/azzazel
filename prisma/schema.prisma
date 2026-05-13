@@ -1,0 +1,310 @@
+// Azazel OSINT — Production Database Schema
+// PostgreSQL + Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ═══════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════
+
+enum Role {
+  USER
+  PREMIUM
+  ADMIN
+  SUPERADMIN
+}
+
+enum Plan {
+  FREE
+  PREMIUM
+}
+
+enum SubStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+enum SearchType {
+  EMAIL
+  USERNAME
+  IP
+  DOMAIN
+  PHONE
+  NAME
+  HASH
+  CRYPTO
+  AUTO
+}
+
+enum SearchStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  RATE_LIMITED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotifType {
+  INFO
+  WARNING
+  ALERT
+  SYSTEM
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+// ═══════════════════════════════════════════
+// CORE MODELS
+// ═══════════════════════════════════════════
+
+model User {
+  id            String    @id @default(cuid())
+  azazelId      String    @unique // 0x... cryptographic hex identifier
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String
+  emailVerified Boolean   @default(false)
+  verifyToken   String?   @unique
+  resetToken    String?   @unique
+  resetTokenExp DateTime?
+  role          Role      @default(USER)
+  avatar        String?
+  banned        Boolean   @default(false)
+  banReason     String?
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  searches      Search[]
+  apiKeys       ApiKey[]
+  subscription  Subscription?
+  notifications Notification[]
+  savedResults  SavedResult[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([username])
+  @@index([azazelId])
+  @@index([createdAt])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  fingerprint  String
+  ip           String
+  userAgent    String
+  expiresAt    DateTime
+  rotatedAt    DateTime @default(now())
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+}
+
+model Search {
+  id          String       @id @default(cuid())
+  userId      String
+  query       String
+  searchType  SearchType
+  providers   String[]
+  resultCount Int          @default(0)
+  duration    Int          @default(0) // milliseconds
+  status      SearchStatus @default(PENDING)
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  results     SearchResult[]
+  savedResult SavedResult?
+
+  @@index([userId])
+  @@index([searchType])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+model SearchResult {
+  id         String   @id @default(cuid())
+  searchId   String
+  source     String   // Provider name
+  breachName String?
+  breachDate DateTime?
+  severity   Severity @default(MEDIUM)
+  fields     Json     // Censored data fields
+  rawData    Json     // Encrypted raw data (never sent to client)
+  leakType   String?
+  recordCount Int?
+  createdAt  DateTime @default(now())
+  search     Search   @relation(fields: [searchId], references: [id], onDelete: Cascade)
+
+  @@index([searchId])
+  @@index([severity])
+  @@index([breachName])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  key         String    @unique
+  prefix      String    // First 8 chars for display: "az_1a2b..."
+  hashedKey   String    // SHA-256 hash of full key
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  permissions Json      @default("[]")
+  rateLimit   Int       @default(100) // requests per day
+  usageCount  Int       @default(0)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([key])
+  @@index([hashedKey])
+  @@index([userId])
+}
+
+model Subscription {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  plan           Plan      @default(FREE)
+  status         SubStatus @default(ACTIVE)
+  dailySearches  Int       @default(3)
+  searchesUsed   Int       @default(0)
+  searchResetAt  DateTime  @default(now())
+  monthlyApiCalls Int      @default(0)
+  apiCallsUsed   Int       @default(0)
+  stripeCustomerId String?
+  stripeSubId    String?
+  stripePriceId  String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean @default(false)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([plan])
+  @@index([status])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotifType @default(INFO)
+  read      Boolean   @default(false)
+  link      String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model SavedResult {
+  id        String   @id @default(cuid())
+  userId    String
+  searchId  String   @unique
+  name      String?
+  notes     String?
+  tags      String[]
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  search    Search   @relation(fields: [searchId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  severity  LogLevel @default(INFO)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  enabled     Boolean  @default(false)
+  description String?
+  rules       Json?    // Targeting rules (plan, role, percentage)
+  metadata    Json?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@index([key])
+}
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     LogLevel @default(INFO)
+  message   String
+  source    String   // Service/module name
+  traceId   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([source])
+  @@index([createdAt])
+  @@index([traceId])
+}
