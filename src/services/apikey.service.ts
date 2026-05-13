@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
+import { generateRandomHex, sha256 } from '@/lib/crypto-utils';
 import type { PlanType } from '@/types';
 
 // ═══════════════════════════════════════════════════════════
@@ -48,9 +48,9 @@ export async function validateApiKey(key: string) {
 }
 
 export async function createApiKey(userId: string, name: string, scopes: string[]) {
-  const rawKey = `az_live_${crypto.randomBytes(32).toString('hex')}`;
+  const rawKey = `az_live_${generateRandomHex(32)}`;
   const prefix = rawKey.substring(0, 16);
-  const hashedKey = crypto.createHash('sha256').update(rawKey).digest('hex');
+  const hashedKey = await sha256(rawKey);
   
   const created = await prisma.apiKey.create({
     data: {

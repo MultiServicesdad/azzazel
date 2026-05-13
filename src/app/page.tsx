@@ -51,7 +51,7 @@ const plans = [
   },
   {
     name: "PREMIUM_ACCESS",
-    price: "$29.99",
+    price: "10€",
     period: "/MONTH",
     features: ["100 daily searches", "Full intelligence reveal", "Institutional API Access", "Export CSV, JSON & PDF", "Unlimited history", "Priority support"],
     cta: "Upgrade_System",

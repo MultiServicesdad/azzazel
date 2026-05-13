@@ -1,3 +1,5 @@
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getSavedResults, saveSearchResult, deleteSavedResult } from '@/services/saved-results.service';
 import { getUserFromToken } from '@/services/auth.service';

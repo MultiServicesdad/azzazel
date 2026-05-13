@@ -1,3 +1,5 @@
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { logoutUser } from '@/services/auth.service';
 import { AUTH_COOKIE_NAME, CSRF_COOKIE_NAME } from '@/lib/constants';

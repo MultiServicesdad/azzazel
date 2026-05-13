@@ -29,7 +29,7 @@ export const PLANS = {
   },
   PREMIUM: {
     name: 'Premium',
-    price: 29.99,
+    price: 10,
     dailySearches: 100,
     monthlyApiCalls: 3000,
     maxSavedResults: -1, // unlimited

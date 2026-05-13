@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import * as jose from 'jose';
+import { generateRandomHex, sha256 } from '@/lib/crypto-utils';
 import { prisma } from '@/lib/prisma';
 import { AZAZEL_ID_BYTES, AZAZEL_ID_PREFIX } from '@/lib/constants';
 
@@ -10,14 +10,14 @@ import { AZAZEL_ID_BYTES, AZAZEL_ID_PREFIX } from '@/lib/constants';
 // ═══════════════════════════════════════════════════════════
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+const secret = new TextEncoder().encode(JWT_SECRET);
 const ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '15m';
 const REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 const BCRYPT_ROUNDS = 12;
 
 // ── Azazel ID Generation ─────────────────────────────────
 export function generateAzazelId(): string {
-  const bytes = crypto.randomBytes(AZAZEL_ID_BYTES);
-  return `${AZAZEL_ID_PREFIX}${bytes.toString('hex')}`;
+  return `${AZAZEL_ID_PREFIX}${generateRandomHex(AZAZEL_ID_BYTES)}`;
 }
 
 // ── Password Hashing ─────────────────────────────────────
@@ -33,31 +33,33 @@ export async function verifyPassword(
 }
 
 // ── Token Generation ─────────────────────────────────────
-export function generateAccessToken(payload: {
+export async function generateAccessToken(payload: {
   userId: string;
   role: string;
-}): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: ACCESS_EXPIRY as any,
-    issuer: 'azazel-osint',
-    audience: 'azazel-client',
-  });
+}): Promise<string> {
+  return new jose.SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setIssuer('azazel-osint')
+    .setAudience('azazel-client')
+    .setExpirationTime(ACCESS_EXPIRY)
+    .sign(secret);
 }
 
 export function generateRefreshToken(): string {
-  return crypto.randomBytes(48).toString('hex');
+  return generateRandomHex(48);
 }
 
-export function verifyAccessToken(token: string): {
+export async function verifyAccessToken(token: string): Promise<{
   userId: string;
   role: string;
-} | null {
+} | null> {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
+    const { payload } = await jose.jwtVerify(token, secret, {
       issuer: 'azazel-osint',
       audience: 'azazel-client',
-    }) as { userId: string; role: string };
-    return decoded;
+    });
+    return payload as { userId: string; role: string };
   } catch {
     return null;
   }
@@ -65,22 +67,22 @@ export function verifyAccessToken(token: string): {
 
 // ── Verification Token ───────────────────────────────────
 export function generateVerifyToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return generateRandomHex(32);
 }
 
 // ── Fingerprint Generation ───────────────────────────────
-export function generateFingerprint(
+export async function generateFingerprint(
   userAgent: string,
   ip: string,
   acceptLanguage?: string
-): string {
+): Promise<string> {
   const raw = `${userAgent}|${ip}|${acceptLanguage || ''}`;
-  return crypto.createHash('sha256').update(raw).digest('hex');
+  return sha256(raw);
 }
 
 // ── CSRF Token ───────────────────────────────────────────
 export function generateCsrfToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return generateRandomHex(32);
 }
 
 // ── Register ─────────────────────────────────────────────
@@ -176,12 +178,12 @@ export async function loginUser(data: {
   }
 
   // Generate tokens
-  const accessToken = generateAccessToken({
+  const accessToken = await generateAccessToken({
     userId: user.id,
     role: user.role,
   });
   const refreshToken = generateRefreshToken();
-  const fingerprint = generateFingerprint(data.userAgent, data.ip);
+  const fingerprint = await generateFingerprint(data.userAgent, data.ip);
 
   // Create session
   const expiresAt = new Date();
@@ -277,7 +279,7 @@ export async function refreshAccessToken(data: {
 
   // Rotate refresh token (security best practice)
   const newRefreshToken = generateRefreshToken();
-  const newAccessToken = generateAccessToken({
+  const newAccessToken = await generateAccessToken({
     userId: session.user.id,
     role: session.user.role,
   });
@@ -388,7 +390,7 @@ export async function resetPassword(token: string, newPassword: string) {
 
 // ── Get User from Token ──────────────────────────────────
 export async function getUserFromToken(accessToken: string) {
-  const payload = verifyAccessToken(accessToken);
+  const payload = await verifyAccessToken(accessToken);
   if (!payload) return null;
 
   const user = await prisma.user.findUnique({

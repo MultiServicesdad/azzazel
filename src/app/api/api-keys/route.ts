@@ -1,3 +1,5 @@
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserApiKeys, createApiKey, deleteApiKey } from '@/services/apikey.service';
 import { getUserFromToken } from '@/services/auth.service';

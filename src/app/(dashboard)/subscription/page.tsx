@@ -13,7 +13,7 @@ const tiers = [
   {
     name: "FREE_SUBSYSTEM",
     id: "FREE",
-    price: "$0",
+    price: "0€",
     period: "FOREVER",
     features: ["3 daily searches", "Basic data reveal", "Censored results", "Standard support"],
     limit: 3,
@@ -21,7 +21,7 @@ const tiers = [
   {
     name: "PREMIUM_ACCESS",
     id: "PREMIUM",
-    price: "$29.99",
+    price: "10€",
     period: "/MONTH",
     features: [
       "100 daily searches", 
@@ -40,6 +40,26 @@ export default function SubscriptionPage() {
   const { user } = useAuthStore();
   const isPremium = user?.role === 'PREMIUM' || user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
   const currentTier = isPremium ? tiers[1] : tiers[0];
+
+  const handleUpgrade = async (planId: string) => {
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId }),
+      });
+      const data = await res.json();
+      if (data.payLink) {
+        window.location.href = data.payLink;
+      } else {
+        console.error('Checkout error:', data.error);
+        alert('Checkout error: ' + (data.message || data.error));
+      }
+    } catch (err) {
+      console.error('Checkout failed:', err);
+      alert('Checkout failed. Please try again.');
+    }
+  };
 
   return (
     <div className="space-y-12 max-w-6xl mx-auto py-10 pb-20">
@@ -130,6 +150,7 @@ export default function SubscriptionPage() {
                 
                 <Button 
                   disabled={isCurrent}
+                  onClick={() => tier.id === 'PREMIUM' && handleUpgrade(tier.id)}
                   className={`w-full h-14 rounded-none text-[10px] font-black uppercase tracking-widest ${
                     isCurrent 
                       ? `${tier.popular ? 'bg-black/20 text-black/40' : 'bg-zinc-900 text-zinc-700'} cursor-not-allowed` 
@@ -138,7 +159,7 @@ export default function SubscriptionPage() {
                         : 'bg-white text-black hover:bg-zinc-200'
                   }`}
                 >
-                  {isCurrent ? "Active_Plan" : tier.price === '$0' ? "Initialize" : "Upgrade_System"}
+                  {isCurrent ? "Active_Plan" : tier.price === '0€' ? "Initialize" : "Upgrade_System"}
                 </Button>
               </div>
             );
@@ -154,8 +175,7 @@ export default function SubscriptionPage() {
         </div>
         <div className="space-y-1">
           {[
-            { id: "INV-2024-001", date: "May 12, 2024", amount: "$29.99", status: "PAID" },
-            { id: "INV-2024-002", date: "April 12, 2024", amount: "$29.99", status: "PAID" },
+            { id: "INV-2024-001", date: "May 12, 2024", amount: "10€", status: "PAID" },
           ].map((inv) => (
             <div key={inv.id} className="flex items-center justify-between p-4 bg-black border border-zinc-900 hover:bg-zinc-900/30 transition-colors">
               <div className="flex items-center gap-4">

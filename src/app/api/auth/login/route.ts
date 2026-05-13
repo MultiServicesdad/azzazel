@@ -1,3 +1,5 @@
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { loginSchema } from '@/lib/validations';
 import { loginUser, generateCsrfToken } from '@/services/auth.service';
