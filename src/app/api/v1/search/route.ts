@@ -1,5 +1,3 @@
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey } from '@/services/apikey.service';
 import { executeSearch } from '@/services/search.service';

@@ -1,5 +1,3 @@
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { searchSchema } from '@/lib/validations';
 import { getUserFromToken } from '@/services/auth.service';
